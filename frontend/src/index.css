@@ -4,6 +4,7 @@
   font-weight: 300;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-002F, U+003A-FFFF;
 }
 
 @font-face {
@@ -12,6 +13,7 @@
   font-weight: 300;
   font-style: italic;
   font-display: swap;
+  unicode-range: U+0000-002F, U+003A-FFFF;
 }
 
 @font-face {
@@ -20,6 +22,7 @@
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-002F, U+003A-FFFF;
 }
 
 @font-face {
@@ -28,6 +31,7 @@
   font-weight: 400;
   font-style: italic;
   font-display: swap;
+  unicode-range: U+0000-002F, U+003A-FFFF;
 }
 
 @font-face {
@@ -36,6 +40,7 @@
   font-weight: 500;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-002F, U+003A-FFFF;
 }
 
 @font-face {
@@ -44,6 +49,7 @@
   font-weight: 600;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-002F, U+003A-FFFF;
 }
 
 @font-face {
@@ -52,6 +58,7 @@
   font-weight: 700;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-002F, U+003A-FFFF;
 }
 
 @font-face {
@@ -60,6 +67,7 @@
   font-weight: 700;
   font-style: italic;
   font-display: swap;
+  unicode-range: U+0000-002F, U+003A-FFFF;
 }
 
 @font-face {
@@ -68,6 +76,7 @@
   font-weight: 800;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-002F, U+003A-FFFF;
 }
 
 @font-face {
@@ -76,6 +85,7 @@
   font-weight: 900;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-002F, U+003A-FFFF;
 }
 
 :root {
@@ -91,9 +101,9 @@
   --text-muted: #7e705f;
   --danger: #e57373;
 
-  --font-serif: 'Artisual Deco', serif;
-  --font-sans: 'Artisual Deco', sans-serif;
-  --font-mono: 'Artisual Deco', sans-serif;
+  --font-serif: 'Artisual Deco', 'Cinzel', 'Didot', 'Bodoni MT', Georgia, serif;
+  --font-sans: 'Artisual Deco', 'Cinzel', 'Didot', 'Bodoni MT', Georgia, serif;
+  --font-mono: 'Artisual Deco', 'Cinzel', 'Didot', 'Bodoni MT', Georgia, serif;
 }
 
 *,
