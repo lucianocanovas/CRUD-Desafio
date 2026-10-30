@@ -12,9 +12,6 @@ public class ProfileResponse {
     @Schema(description = "Correo electrónico del usuario", example = "usuario@concurso.com")
     private String email;
 
-    @Schema(description = "Rol del usuario", example = "ROLE_USER")
-    private String rol;
-
     @Schema(description = "Proveedor de autenticación (LOCAL o GOOGLE/AUTH0)", example = "LOCAL")
     private String authProvider;
 
@@ -33,11 +30,10 @@ public class ProfileResponse {
     public ProfileResponse() {
     }
 
-    public ProfileResponse(Long id, String email, String rol, String authProvider,
+    public ProfileResponse(Long id, String email, String authProvider,
                            Boolean activo, PersonaDTO persona, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.email = email;
-        this.rol = rol;
         this.authProvider = authProvider;
         this.activo = activo;
         this.persona = persona;
@@ -59,14 +55,6 @@ public class ProfileResponse {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getRol() {
-        return rol;
-    }
-
-    public void setRol(String rol) {
-        this.rol = rol;
     }
 
     public String getAuthProvider() {

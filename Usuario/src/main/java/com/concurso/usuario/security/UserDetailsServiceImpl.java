@@ -28,7 +28,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado con email: " + email));
 
         List<GrantedAuthority> authorities = Collections.singletonList(
-                new SimpleGrantedAuthority(usuario.getRol().name())
+                new SimpleGrantedAuthority("USER")
         );
 
         return new User(

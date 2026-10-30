@@ -105,7 +105,6 @@ public class AuthController {
                 null,
                 usuario.getId(),
                 usuario.getEmail(),
-                usuario.getRol().name(),
                 usuario.getPersona() != null ? usuario.getPersona().getNombre() : "",
                 usuario.getPersona() != null ? usuario.getPersona().getApellido() : ""
         );

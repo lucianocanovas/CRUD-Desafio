@@ -43,13 +43,12 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateToken(String email, Long userId, String rol) {
+    public String generateToken(String email, Long userId) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMilliseconds);
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
-        claims.put("rol", rol);
 
         return Jwts.builder()
                 .claims(claims)
@@ -62,7 +61,7 @@ public class JwtTokenProvider {
 
     public String generateToken(Authentication authentication) {
         UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
-        return generateToken(userPrincipal.getUsername(), null, null);
+        return generateToken(userPrincipal.getUsername(), null);
     }
 
     public String getUsernameFromJwt(String token) {

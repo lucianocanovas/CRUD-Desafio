@@ -17,9 +17,6 @@ public class AuthResponse {
     @Schema(description = "Correo electrónico del usuario", example = "usuario@concurso.com")
     private String email;
 
-    @Schema(description = "Rol del usuario en el sistema", example = "ROLE_USER")
-    private String rol;
-
     @Schema(description = "Nombre de la persona asociada", example = "Juan")
     private String nombre;
 
@@ -29,11 +26,10 @@ public class AuthResponse {
     public AuthResponse() {
     }
 
-    public AuthResponse(String token, Long id, String email, String rol, String nombre, String apellido) {
+    public AuthResponse(String token, Long id, String email, String nombre, String apellido) {
         this.token = token;
         this.id = id;
         this.email = email;
-        this.rol = rol;
         this.nombre = nombre;
         this.apellido = apellido;
     }
@@ -68,14 +64,6 @@ public class AuthResponse {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getRol() {
-        return rol;
-    }
-
-    public void setRol(String rol) {
-        this.rol = rol;
     }
 
     public String getNombre() {

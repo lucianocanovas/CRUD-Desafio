@@ -27,20 +27,29 @@ public class ProfileUpdateRequest {
     @Schema(description = "Fecha de nacimiento en formato YYYY-MM-DD", example = "2000-02-12")
     private LocalDate fechaNacimiento;
 
-    @NotBlank(message = "La dirección es obligatoria")
-    @Size(min = 3, max = 255, message = "La dirección debe tener entre 3 y 255 caracteres")
-    @Schema(description = "Dirección de residencia actualizada", example = "Nueva Dirección 999, La Plata")
-    private String direccion;
+    @Schema(description = "Dirección estructurada actualizada")
+    private DireccionRequest direccion;
+
+    @Schema(description = "ID de dirección existente opcional", example = "1")
+    private Long direccionId;
 
     public ProfileUpdateRequest() {
     }
 
-    public ProfileUpdateRequest(String nombre, String apellido, String dni, LocalDate fechaNacimiento, String direccion) {
+    public ProfileUpdateRequest(String nombre, String apellido, String dni, LocalDate fechaNacimiento, DireccionRequest direccion) {
         this.nombre = nombre;
         this.apellido = apellido;
         this.dni = dni;
         this.fechaNacimiento = fechaNacimiento;
         this.direccion = direccion;
+    }
+
+    public ProfileUpdateRequest(String nombre, String apellido, String dni, LocalDate fechaNacimiento, String direccionTexto) {
+        this.nombre = nombre;
+        this.apellido = apellido;
+        this.dni = dni;
+        this.fechaNacimiento = fechaNacimiento;
+        this.direccion = new DireccionRequest(direccionTexto, "S/N", null, null, null);
     }
 
     public String getNombre() {
@@ -75,11 +84,19 @@ public class ProfileUpdateRequest {
         this.fechaNacimiento = fechaNacimiento;
     }
 
-    public String getDireccion() {
+    public DireccionRequest getDireccion() {
         return direccion;
     }
 
-    public void setDireccion(String direccion) {
+    public void setDireccion(DireccionRequest direccion) {
         this.direccion = direccion;
+    }
+
+    public Long getDireccionId() {
+        return direccionId;
+    }
+
+    public void setDireccionId(Long direccionId) {
+        this.direccionId = direccionId;
     }
 }

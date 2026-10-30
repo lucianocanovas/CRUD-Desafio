@@ -1,8 +1,12 @@
 package com.concurso.usuario;
 
 import com.concurso.usuario.dto.request.ChangePasswordRequest;
+import com.concurso.usuario.dto.request.DepartamentoRequest;
+import com.concurso.usuario.dto.request.DireccionRequest;
+import com.concurso.usuario.dto.request.LocalidadRequest;
 import com.concurso.usuario.dto.request.LoginRequest;
 import com.concurso.usuario.dto.request.OAuthLoginRequest;
+import com.concurso.usuario.dto.request.PaisRequest;
 import com.concurso.usuario.dto.request.ProfileUpdateRequest;
 import com.concurso.usuario.dto.request.RegisterRequest;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,6 +23,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -44,9 +49,9 @@ public class UsuarioIntegrationTest {
     }
 
     @Test
-    @DisplayName("2. Flujo completo: Registro -> Login -> Opción 1 (Perfil) -> Opción 2 (Cambio Clave)")
+    @DisplayName("2. Flujo completo: Registro -> Login -> Opción 1 (Perfil) -> Opción 2 (Cambio Clave) [Sin roles]")
     void testFullUserFlow() throws Exception {
-        // --- PASO 1: REGISTRAR USUARIO (CON PERSONA) ---
+        // --- PASO 1: REGISTRAR USUARIO (CON PERSONA Y DIRECCION) ---
         RegisterRequest registerReq = new RegisterRequest(
                 "maria.becerra@concurso.com",
                 "ClaveSecreta123",
@@ -90,7 +95,7 @@ public class UsuarioIntegrationTest {
                 .andExpect(jsonPath("$.data.persona.nombre").value("María"))
                 .andExpect(jsonPath("$.data.persona.apellido").value("Becerra"))
                 .andExpect(jsonPath("$.data.persona.dni").value("41999888"))
-                .andExpect(jsonPath("$.data.persona.direccion").value("Calle 13 Nro 500"));
+                .andExpect(jsonPath("$.data.persona.direccion.calle").value("Calle 13 Nro 500"));
 
         // --- OPCIÓN 1: MODIFICAR DATOS DEL PERFIL ---
         ProfileUpdateRequest updateReq = new ProfileUpdateRequest(
@@ -109,7 +114,7 @@ public class UsuarioIntegrationTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.persona.nombre").value("María Emilia"))
                 .andExpect(jsonPath("$.data.persona.apellido").value("Becerra Modificada"))
-                .andExpect(jsonPath("$.data.persona.direccion").value("Nueva Dirección 999"));
+                .andExpect(jsonPath("$.data.persona.direccion.calle").value("Nueva Dirección 999"));
 
         // --- OPCIÓN 2: CAMBIAR LA CLAVE (Y QUE FUNCIONE) ---
         // A) Intentar cambiar con contraseña actual incorrecta -> debe fallar con 400
@@ -170,7 +175,6 @@ public class UsuarioIntegrationTest {
     @Test
     @DisplayName("4. Usuario de Google/OAuth debe poder establecer o cambiar su contraseña sin clave actual")
     void testGoogleUserPasswordChange() throws Exception {
-        // A) Iniciar sesión con Google / OAuth
         OAuthLoginRequest googleReq = new OAuthLoginRequest(
                 "google.user@gmail.com",
                 "Google",
@@ -193,9 +197,8 @@ public class UsuarioIntegrationTest {
         String token = objectMapper.readTree(oauthResult.getResponse().getContentAsString())
                 .get("data").get("token").asText();
 
-        // B) Establecer contraseña (sin requerir clave actual previa)
         ChangePasswordRequest setPasswordReq = new ChangePasswordRequest(
-                null, // Contraseña actual nula/vacía porque inició con Google
+                null,
                 "MiNuevaClaveGoogle2026",
                 "MiNuevaClaveGoogle2026"
         );
@@ -207,7 +210,6 @@ public class UsuarioIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
-        // C) Ahora el usuario de Google puede iniciar sesión tradicional con su email y la clave establecida
         LoginRequest loginReq = new LoginRequest("google.user@gmail.com", "MiNuevaClaveGoogle2026");
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -215,5 +217,65 @@ public class UsuarioIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.token").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("5. CRUD de Países, Departamentos, Localidades y Direcciones")
+    void testGeographicalEntitiesCrud() throws Exception {
+        // A) Crear País
+        PaisRequest paisReq = new PaisRequest("Uruguay", "UY");
+        MvcResult paisResult = mockMvc.perform(post("/api/paises")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(paisReq)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.nombre").value("Uruguay"))
+                .andReturn();
+
+        Long paisId = objectMapper.readTree(paisResult.getResponse().getContentAsString()).get("data").get("id").asLong();
+
+        // B) Crear Departamento
+        DepartamentoRequest deptoReq = new DepartamentoRequest("Montevideo", paisId);
+        MvcResult deptoResult = mockMvc.perform(post("/api/departamentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(deptoReq)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.nombre").value("Montevideo"))
+                .andReturn();
+
+        Long deptoId = objectMapper.readTree(deptoResult.getResponse().getContentAsString()).get("data").get("id").asLong();
+
+        // C) Crear Localidad
+        LocalidadRequest locReq = new LocalidadRequest("Centro", "11100", deptoId);
+        MvcResult locResult = mockMvc.perform(post("/api/localidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(locReq)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.nombre").value("Centro"))
+                .andReturn();
+
+        Long locId = objectMapper.readTree(locResult.getResponse().getContentAsString()).get("data").get("id").asLong();
+
+        // D) Crear Dirección
+        DireccionRequest dirReq = new DireccionRequest("Av. 18 de Julio", "1020", "3", "A", locId);
+        MvcResult dirResult = mockMvc.perform(post("/api/direcciones")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dirReq)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.calle").value("Av. 18 de Julio"))
+                .andExpect(jsonPath("$.data.numero").value("1020"))
+                .andExpect(jsonPath("$.data.localidad.nombre").value("Centro"))
+                .andReturn();
+
+        Long dirId = objectMapper.readTree(dirResult.getResponse().getContentAsString()).get("data").get("id").asLong();
+
+        // E) Listar todas las direcciones
+        mockMvc.perform(get("/api/direcciones"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray());
+
+        // F) Obtener dirección por ID
+        mockMvc.perform(get("/api/direcciones/" + dirId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(dirId));
     }
 }

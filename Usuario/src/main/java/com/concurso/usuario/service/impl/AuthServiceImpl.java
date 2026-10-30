@@ -1,19 +1,20 @@
 package com.concurso.usuario.service.impl;
 
+import com.concurso.usuario.dto.request.DireccionRequest;
 import com.concurso.usuario.dto.request.LoginRequest;
 import com.concurso.usuario.dto.request.OAuthLoginRequest;
 import com.concurso.usuario.dto.request.RegisterRequest;
 import com.concurso.usuario.dto.response.AuthResponse;
 import com.concurso.usuario.entity.AuthProvider;
+import com.concurso.usuario.entity.Direccion;
 import com.concurso.usuario.entity.Persona;
-import com.concurso.usuario.entity.Rol;
 import com.concurso.usuario.entity.Usuario;
-import com.concurso.usuario.exception.BadRequestException;
 import com.concurso.usuario.exception.UnauthorizedException;
 import com.concurso.usuario.pattern.template.UserRegistrationTemplate;
 import com.concurso.usuario.repository.UsuarioRepository;
 import com.concurso.usuario.security.jwt.JwtTokenProvider;
 import com.concurso.usuario.service.AuthService;
+import com.concurso.usuario.service.DireccionService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -33,17 +34,20 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenProvider tokenProvider;
     private final PasswordEncoder passwordEncoder;
     private final UserRegistrationTemplate userRegistrationTemplate;
+    private final DireccionService direccionService;
 
     public AuthServiceImpl(AuthenticationManager authenticationManager,
                            UsuarioRepository usuarioRepository,
                            JwtTokenProvider tokenProvider,
                            PasswordEncoder passwordEncoder,
-                           UserRegistrationTemplate userRegistrationTemplate) {
+                           UserRegistrationTemplate userRegistrationTemplate,
+                           DireccionService direccionService) {
         this.authenticationManager = authenticationManager;
         this.usuarioRepository = usuarioRepository;
         this.tokenProvider = tokenProvider;
         this.passwordEncoder = passwordEncoder;
         this.userRegistrationTemplate = userRegistrationTemplate;
+        this.direccionService = direccionService;
     }
 
     @Override
@@ -73,13 +77,12 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedException("La cuenta de usuario está desactivada.");
         }
 
-        String token = tokenProvider.generateToken(usuario.getEmail(), usuario.getId(), usuario.getRol().name());
+        String token = tokenProvider.generateToken(usuario.getEmail(), usuario.getId());
 
         return new AuthResponse(
                 token,
                 usuario.getId(),
                 usuario.getEmail(),
-                usuario.getRol().name(),
                 usuario.getPersona() != null ? usuario.getPersona().getNombre() : "",
                 usuario.getPersona() != null ? usuario.getPersona().getApellido() : ""
         );
@@ -99,8 +102,13 @@ public class AuthServiceImpl implements AuthService {
                     ? request.getDni().trim() : String.valueOf(System.currentTimeMillis()).substring(3, 11);
             LocalDate fechaNac = request.getFechaNacimiento() != null
                     ? request.getFechaNacimiento() : LocalDate.of(2000, 1, 1);
-            String direccion = request.getDireccion() != null && !request.getDireccion().isBlank()
+            String direccionTexto = request.getDireccion() != null && !request.getDireccion().isBlank()
                     ? request.getDireccion().trim() : "Sin especificar";
+
+            Direccion direccion = direccionService.getOrCreateFromRequest(
+                    new DireccionRequest(direccionTexto, "S/N", null, null, null),
+                    null
+            );
 
             Persona persona = Persona.builder()
                     .nombre(nombre)
@@ -113,7 +121,6 @@ public class AuthServiceImpl implements AuthService {
             Usuario nuevoUsuario = Usuario.builder()
                     .email(email)
                     .password(passwordEncoder.encode(UUID.randomUUID().toString()))
-                    .rol(Rol.ROLE_USER)
                     .authProvider(AuthProvider.GOOGLE)
                     .activo(true)
                     .persona(persona)
@@ -126,15 +133,14 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedException("La cuenta de usuario se encuentra inactiva.");
         }
 
-        String token = tokenProvider.generateToken(usuario.getEmail(), usuario.getId(), usuario.getRol().name());
+        String token = tokenProvider.generateToken(usuario.getEmail(), usuario.getId());
 
         return new AuthResponse(
                 token,
                 usuario.getId(),
                 usuario.getEmail(),
-                usuario.getRol().name(),
-                usuario.getPersona().getNombre(),
-                usuario.getPersona().getApellido()
+                usuario.getPersona() != null ? usuario.getPersona().getNombre() : "",
+                usuario.getPersona() != null ? usuario.getPersona().getApellido() : ""
         );
     }
 }

@@ -1,16 +1,16 @@
 # 📘 MANUAL TÉCNICO Y DOCUMENTACIÓN INTEGRAL DEL BACKEND
-## Concurso ABM - Sistema de Usuarios, Perfiles, SQLite y Seguridad JWT/OAuth
+## Concurso ABM - Sistema de Usuarios, Direcciones Geográficas, SQLite y Seguridad JWT/OAuth
 
 ---
 
 ## 📑 ÍNDICE
 1. [Resumen Ejecutivo y Cumplimiento de Consignas](#1-resumen-ejecutivo-y-cumplimiento-de-consignas)
-2. [Arquitectura en Capas (MVC Modificado)](#2-arquitectura-en-capas-mvc-modificado)
+2. [Arquitectura en Capas](#2-arquitectura-en-capas)
 3. [Patrones de Diseño Implementados](#3-patrones-de-diseño-implementados)
    - Patrón Plantilla (Template Method Pattern)
    - Patrón Creacional Builder
-4. [Modelo de Dominio: Distinción Persona vs Usuario](#4-modelo-de-dominio-distinción-persona-vs-usuario)
-5. [Seguridad, JWT y Gestión de Contraseñas (Cuentas Locales y Google/OAuth)](#5-seguridad-jwt-y-gestión-de-contraseñas-cuentas-locales-y-googleoauth)
+4. [Modelo de Dominio: Persona, Usuario y Direcciones](#4-modelo-de-dominio-persona-usuario-y-direcciones)
+5. [Seguridad y Restricción de Rutas (Sin Roles ni Admin)](#5-seguridad-y-restricción-de-rutas-sin-roles-ni-admin)
 6. [Persistencia en Base de Datos SQLite](#6-persistencia-en-base-de-datos-sqlite)
 7. [Catálogo Completo de Endpoints de la API](#7-catálogo-completo-de-endpoints-de-la-api)
 8. [Cómo Probar Todo el Backend sin el Frontend](#8-cómo-probar-todo-el-backend-sin-el-frontend)
@@ -20,29 +20,28 @@
 
 ## 1. RESUMEN EJECUTIVO Y CUMPLIMIENTO DE CONSIGNAS
 
-El presente backend fue construido bajo las exigencias del **Concurso ABM**:
+El presente backend fue adaptado según los requerimientos del proyecto:
+- **Sin roles ni perfiles de administrador**: Únicamente usuarios que se registran e inician sesión.
+- **Rutas restringidas estrictas**: Las **únicas** rutas que requieren autenticación son las del perfil y la del cambio de contraseña (`/api/profile/**`).
+- **Modelado relacional de direcciones**: Jerarquía completa normalizada con controladores CRUD completos:
+  - `Pais` ➔ `Departamento` ➔ `Localidad` ➔ `Direccion` ➔ vinculada a `Persona`.
 - **División en capas**: Controlador REST, Servicios de Negocio, Plantillas de Comportamiento, Repositorios JPA y Entidades de Dominio.
-- **Patrones de diseño**: **Patrón Plantilla (Template Method)** en las operaciones de cuenta (Registro, Perfil y Cambio de Password) y **Patrón Builder**.
+- **Patrones de diseño**: **Patrón Plantilla (Template Method)** en las operaciones de cuenta (Registro, Perfil y Cambio de Password) y **Patrón Builder** en las entidades.
 - **Distinción Persona vs Usuario**: Entidad `Persona` física desacoplada de la entidad `Usuario` mediante `@OneToOne`.
 - **Persistencia SQLite**: Base de datos basada en archivo (`usuariodb.db`) que persiste la información entre reinicios del servidor.
-- **Flujo de Usuario del Concurso**:
-  - **1ro Login**: Autenticación tradicional (email/password) o mediante OAuth2 (Auth0 / Google).
-  - **2do Opciones tras login**:
-    - **Opción 1 (Perfil)**: Ver y modificar datos personales.
-    - **Opción 2 (Cambio de clave)**: Cambio seguro de contraseña con BCrypt tanto para usuarios locales como para usuarios que ingresaron con Google.
 
 ---
 
-## 2. ARQUITECTURA EN CAPAS (MVC MODIFICADO)
+## 2. ARQUITECTURA EN CAPAS
 
 ```
 com.concurso.usuario
-├── controller         # Capa de Entrada / REST API (Endpoints HTTP)
-├── service            # Capa de Lógica de Negocio (Interfaces e Impl)
+├── controller         # Capa REST API (Auth, Profile, Pais, Departamento, Localidad, Direccion)
+├── service            # Capa de Lógica de Negocio e Interfaces (impl)
 ├── pattern.template   # Capa de Patrón Plantilla (Template Method Pattern)
-├── repository         # Capa de Persistencia (Spring Data JPA)
-├── entity             # Capa de Modelo / Entidades de Base de Datos
-├── dto                # Capa de Transferencia de Datos (Requests y Responses)
+├── repository         # Capa de Persistencia Spring Data JPA
+├── entity             # Capa de Modelo / Entidades (Usuario, Persona, Direccion, Localidad, Departamento, Pais)
+├── dto                # Capa DTO (Request / Response) con soporte JSON flexible
 ├── security           # Capa de Seguridad Spring Security 6 & JWT
 ├── config             # Configuraciones (Security, Cors, OpenApi Swagger, SQLite DataInitializer)
 └── exception          # Manejo global de excepciones (@RestControllerAdvice)
@@ -60,44 +59,53 @@ Define los pasos invariables de un algoritmo en una clase base (`AbstractAccount
 4. `postProcess(request, result, userId)`
 
 - **Subclases Concretas**:
-  1. `UserRegistrationTemplate`: Unicidad de Email/DNI, hash BCrypt y emisión de JWT.
-  2. `ProfileUpdateTemplate`: Actualización de datos de la Persona con validación de colisión de DNI.
+  1. `UserRegistrationTemplate`: Unicidad de Email/DNI, resolución de Dirección estructurada, hash BCrypt y emisión de JWT.
+  2. `ProfileUpdateTemplate`: Actualización de datos de la Persona y Dirección con validación de colisión de DNI.
   3. `PasswordChangeTemplate`: Valida contraseña actual en cuentas locales, permite configuración directa en cuentas Google/OAuth, verifica igualdad y almacena hash BCrypt.
 
 ### B) Patrón Creacional: Builder
-Implementado en `Persona`, `Usuario` y DTOs para evitar constructores telescópicos y asegurar legibilidad.
+Implementado en `Pais`, `Departamento`, `Localidad`, `Direccion`, `Persona` y `Usuario`.
 
 ---
 
-## 4. MODELO DE DOMINIO: DISTINCIÓN PERSONA VS USUARIO
+## 4. MODELO DE DOMINIO: PERSONA, USUARIO Y DIRECCIONES
 
 ```
-┌───────────────────────────┐          ┌───────────────────────────┐
-│          USUARIO          │          │          PERSONA          │
-├───────────────────────────┤          ├───────────────────────────┤
-│ Long id                   │ 1      1 │ Long id                   │
-│ String email (Unique)     ├──────────┤ String nombre             │
-│ String password (BCrypt)  │          │ String apellido           │
-│ Rol rol                   │          │ String dni (Unique)       │
-│ AuthProvider authProvider │          │ LocalDate fechaNacimiento │
-│ Boolean activo            │          │ String direccion          │
-│ LocalDateTime createdAt   │          └───────────────────────────┘
-│ LocalDateTime updatedAt   │
-└───────────────────────────┘
+┌───────────────────────────┐         ┌───────────────────────────┐         ┌───────────────────────────┐
+│          USUARIO          │         │          PERSONA          │         │         DIRECCION         │
+├───────────────────────────┤         ├───────────────────────────┤         ├───────────────────────────┤
+│ Long id                   │ 1     1 │ Long id                   │ *     1 │ Long id                   │
+│ String email (Unique)     ├─────────┤ String nombre             ├─────────┤ String calle              │
+│ String password (BCrypt)  │         │ String apellido           │         │ String numero             │
+│ AuthProvider authProvider │         │ String dni (Unique)       │         │ String piso               │
+│ Boolean activo            │         │ LocalDate fechaNacimiento │         │ String nroDepartamento    │
+│ LocalDateTime createdAt   │         │ Direccion direccion       │         │ Localidad localidad       │
+│ LocalDateTime updatedAt   │         └───────────────────────────┘         └─────────────┬─────────────┘
+└───────────────────────────┘                                                             │
+                                                                                          │ *
+                                                                                          │ 1
+┌───────────────────────────┐         ┌───────────────────────────┐         ┌─────────────┴─────────────┐
+│           PAIS            │ 1     * │       DEPARTAMENTO        │ 1     * │         LOCALIDAD         │
+├───────────────────────────┤─────────┤───────────────────────────┤─────────┤───────────────────────────┤
+│ Long id                   │         │ Long id                   │         │ Long id                   │
+│ String nombre             │         │ String nombre             │         │ String nombre             │
+│ String codigo             │         │ Pais pais                 │         │ String codigoPostal       │
+└───────────────────────────┘         └───────────────────────────┘         │ Departamento departamento │
+                                                                            └───────────────────────────┘
 ```
 
 ---
 
-## 5. SEGURIDAD, JWT Y GESTIÓN DE CONTRASEÑAS (CUENTAS LOCALES Y GOOGLE/OAUTH)
+## 5. SEGURIDAD Y RESTRICCIÓN DE RUTAS (SIN ROLES NI ADMIN)
 
-### Autenticación con Google y Cambio de Contraseña
-1. Cuando un usuario inicia sesión con **Google** (`POST /api/auth/oauth-login`):
-   - Se crea su registro con `authProvider = GOOGLE` y una clave segura temporal.
-2. Al ir a la **Opción 2 (Cambiar Contraseña)** (`PUT /api/profile/change-password`):
-   - El usuario **NO conoce su clave temporal de Google**.
-   - Por ello, el campo `currentPassword` es **opcional** para cuentas de Google.
-   - El backend valida la nueva contraseña (`newPassword` y `confirmPassword`), la encripta con BCrypt y la actualiza.
-3. **Acceso Dual**: Una vez establecida la contraseña, el usuario puede continuar ingresando con el botón de Google O iniciar sesión mediante el formulario tradicional con su email y su nueva clave.
+- **Sin Roles ni Administradores**: Cualquier usuario registrado puede acceder a su propio perfil y opciones de cuenta.
+- **Rutas Públicas**:
+  - Catálogo de direcciones (`/api/paises/**`, `/api/departamentos/**`, `/api/localidades/**`, `/api/direcciones/**`).
+  - Autenticación (`/api/auth/**`).
+  - Documentación Swagger (`/swagger-ui/**`, `/v3/api-docs/**`).
+  - Monitoreo (`/api/health`).
+- **Rutas Restringidas (Requieren JWT en `Authorization: Bearer <token>`)**:
+  - `/api/profile/**` (Ver perfil, modificar perfil, cambiar contraseña, baja de cuenta).
 
 ---
 
@@ -105,15 +113,7 @@ Implementado en `Persona`, `Usuario` y DTOs para evitar constructores telescópi
 
 El sistema utiliza **SQLite** para persistir los datos en disco:
 - **Archivo de base de datos**: `usuariodb.db` (en la raíz del proyecto).
-- **Persistencia**: Los datos **no se pierden** al detener o reiniciar la aplicación.
-- **Configuración en `application.properties`**:
-  ```properties
-  spring.datasource.url=jdbc:sqlite:usuariodb.db
-  spring.datasource.driver-class-name=org.sqlite.JDBC
-  spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect
-  spring.jpa.hibernate.ddl-auto=update
-  ```
-- **Inspección de datos**: Se puede abrir el archivo `usuariodb.db` con cualquier herramienta externa como **DB Browser for SQLite**, DBeaver o la consola de SQLite para consultar las tablas `personas` y `usuarios`.
+- **Persistencia**: Los datos se conservan íntegros al apagar o reiniciar la aplicación.
 
 ---
 
@@ -125,12 +125,26 @@ El sistema utiliza **SQLite** para persistir los datos en disco:
 | **POST** | `/api/auth/login` | Ninguna | 1ro: Login tradicional email y clave (retorna JWT) |
 | **POST** | `/api/auth/oauth-login` | Ninguna | Login con Google / Auth0 |
 | **GET** | `/api/auth/check-token` | `Bearer <token>` | Verifica vigencia de la sesión |
-| **GET** | `/api/profile` | `Bearer <token>` | 2do Opción 1: Ver perfil (Persona + Usuario) |
-| **PUT** | `/api/profile` | `Bearer <token>` | 2do Opción 1: Modificar datos personales |
-| **PUT** | `/api/profile/change-password`| `Bearer <token>` | 2do Opción 2: Cambiar clave (locales y Google) |
-| **DELETE** | `/api/profile` | `Bearer <token>` | Baja de la cuenta propia |
-| **GET** | `/api/users` | `Bearer <token>` | Grilla ABM: Listar todos los usuarios para React |
-| **DELETE** | `/api/users/{id}` | `Bearer <token>` | Grilla ABM: Eliminar usuario por ID |
+| **GET** | `/api/profile` | `Bearer <token>` | **Protegido**: Ver perfil (Persona + Usuario + Dirección) |
+| **PUT** | `/api/profile` | `Bearer <token>` | **Protegido**: Modificar datos personales y dirección |
+| **PUT** | `/api/profile/change-password`| `Bearer <token>` | **Protegido**: Cambiar contraseña |
+| **DELETE** | `/api/profile` | `Bearer <token>` | **Protegido**: Baja de la cuenta propia |
+| **GET** | `/api/paises` | Ninguna | Listar todos los países |
+| **POST** | `/api/paises` | Ninguna | Crear un país |
+| **PUT** | `/api/paises/{id}` | Ninguna | Modificar un país |
+| **DELETE** | `/api/paises/{id}` | Ninguna | Eliminar un país |
+| **GET** | `/api/departamentos` | Ninguna | Listar departamentos (filtro opcional `?paisId=`) |
+| **POST** | `/api/departamentos` | Ninguna | Crear un departamento |
+| **PUT** | `/api/departamentos/{id}` | Ninguna | Modificar un departamento |
+| **DELETE** | `/api/departamentos/{id}` | Ninguna | Eliminar un departamento |
+| **GET** | `/api/localidades` | Ninguna | Listar localidades (filtro opcional `?departamentoId=`) |
+| **POST** | `/api/localidades` | Ninguna | Crear una localidad |
+| **PUT** | `/api/localidades/{id}` | Ninguna | Modificar una localidad |
+| **DELETE** | `/api/localidades/{id}` | Ninguna | Eliminar una localidad |
+| **GET** | `/api/direcciones` | Ninguna | Listar direcciones estructuradas completas |
+| **POST** | `/api/direcciones` | Ninguna | Crear una dirección |
+| **PUT** | `/api/direcciones/{id}` | Ninguna | Modificar una dirección |
+| **DELETE** | `/api/direcciones/{id}` | Ninguna | Eliminar una dirección |
 | **GET** | `/api/health` | Ninguna | Health Check del servicio |
 
 ---
@@ -138,20 +152,5 @@ El sistema utiliza **SQLite** para persistir los datos en disco:
 ## 8. CÓMO PROBAR TODO EL BACKEND SIN EL FRONTEND
 
 1. **Swagger UI**: Abre [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) en tu navegador.
-2. **Script PowerShell**: Ejecuta `.\test-api.ps1` en la consola para una corrida automatizada completa en 3 segundos.
-3. **Tests de Maven**: Ejecuta `mvn test`.
-
----
-
-## 9. DESPLIEGUE EN PRODUCCIÓN (DON WEB / MYSQL)
-
-Para desplegar en Don Web con MySQL:
-```bash
-java -jar -Dspring.profiles.active=prod \
-  -DDB_HOST=mysql.tudominio.com \
-  -DDB_PORT=3306 \
-  -DDB_NAME=usuariodb \
-  -DDB_USER=root \
-  -DDB_PASSWORD=tu_password \
-  target/usuario-service-1.0.0-SNAPSHOT.jar
-```
+2. **Script PowerShell**: Ejecuta `.\test-api.ps1` en la consola para una corrida automatizada completa.
+3. **Tests de Integración**: Ejecuta las pruebas automatizadas de Maven (`mvn test`).

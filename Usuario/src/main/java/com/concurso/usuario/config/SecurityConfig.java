@@ -61,22 +61,10 @@ public class SecurityConfig {
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable)) // Para consola H2
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Endpoints públicos de autenticación y salud
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/health").permitAll()
-                        // Documentación Swagger / OpenAPI
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/v3/api-docs/**",
-                                "/swagger-resources/**",
-                                "/webjars/**"
-                        ).permitAll()
-                        // Consola H2 para desarrollo y pruebas
-                        .requestMatchers("/h2-console/**").permitAll()
-                        // Endpoints protegidos (perfil, cambio de clave, etc.)
+                        // Las ÚNICAS rutas a restringir son las del perfil y contraseña
                         .requestMatchers("/api/profile/**").authenticated()
-                        .anyRequest().authenticated()
+                        // Todos los demás endpoints son públicos (auth, países, departamentos, localidades, direcciones, swagger, health, h2)
+                        .anyRequest().permitAll()
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))

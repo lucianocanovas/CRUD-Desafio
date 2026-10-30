@@ -37,16 +37,17 @@ public class RegisterRequest {
     @Schema(description = "Fecha de nacimiento en formato YYYY-MM-DD", example = "2000-02-12")
     private LocalDate fechaNacimiento;
 
-    @NotBlank(message = "La dirección es obligatoria")
-    @Size(min = 3, max = 255, message = "La dirección debe tener entre 3 y 255 caracteres")
-    @Schema(description = "Dirección de residencia", example = "Calle 13 Nro 500, Quilmes")
-    private String direccion;
+    @Schema(description = "Estructura de la dirección de residencia")
+    private DireccionRequest direccion;
+
+    @Schema(description = "ID de dirección existente opcional", example = "1")
+    private Long direccionId;
 
     public RegisterRequest() {
     }
 
     public RegisterRequest(String email, String password, String nombre, String apellido,
-                           String dni, LocalDate fechaNacimiento, String direccion) {
+                           String dni, LocalDate fechaNacimiento, DireccionRequest direccion) {
         this.email = email;
         this.password = password;
         this.nombre = nombre;
@@ -54,6 +55,17 @@ public class RegisterRequest {
         this.dni = dni;
         this.fechaNacimiento = fechaNacimiento;
         this.direccion = direccion;
+    }
+
+    public RegisterRequest(String email, String password, String nombre, String apellido,
+                           String dni, LocalDate fechaNacimiento, String direccionTexto) {
+        this.email = email;
+        this.password = password;
+        this.nombre = nombre;
+        this.apellido = apellido;
+        this.dni = dni;
+        this.fechaNacimiento = fechaNacimiento;
+        this.direccion = new DireccionRequest(direccionTexto, "S/N", null, null, null);
     }
 
     public String getEmail() {
@@ -104,11 +116,19 @@ public class RegisterRequest {
         this.fechaNacimiento = fechaNacimiento;
     }
 
-    public String getDireccion() {
+    public DireccionRequest getDireccion() {
         return direccion;
     }
 
-    public void setDireccion(String direccion) {
+    public void setDireccion(DireccionRequest direccion) {
         this.direccion = direccion;
+    }
+
+    public Long getDireccionId() {
+        return direccionId;
+    }
+
+    public void setDireccionId(Long direccionId) {
+        this.direccionId = direccionId;
     }
 }

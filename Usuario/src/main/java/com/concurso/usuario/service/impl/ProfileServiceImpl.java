@@ -2,6 +2,7 @@ package com.concurso.usuario.service.impl;
 
 import com.concurso.usuario.dto.request.ChangePasswordRequest;
 import com.concurso.usuario.dto.request.ProfileUpdateRequest;
+import com.concurso.usuario.dto.response.DireccionResponse;
 import com.concurso.usuario.dto.response.PersonaDTO;
 import com.concurso.usuario.dto.response.ProfileResponse;
 import com.concurso.usuario.entity.Persona;
@@ -10,12 +11,10 @@ import com.concurso.usuario.exception.ResourceNotFoundException;
 import com.concurso.usuario.pattern.template.PasswordChangeTemplate;
 import com.concurso.usuario.pattern.template.ProfileUpdateTemplate;
 import com.concurso.usuario.repository.UsuarioRepository;
+import com.concurso.usuario.service.DireccionService;
 import com.concurso.usuario.service.ProfileService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ProfileServiceImpl implements ProfileService {
@@ -23,13 +22,16 @@ public class ProfileServiceImpl implements ProfileService {
     private final UsuarioRepository usuarioRepository;
     private final ProfileUpdateTemplate profileUpdateTemplate;
     private final PasswordChangeTemplate passwordChangeTemplate;
+    private final DireccionService direccionService;
 
     public ProfileServiceImpl(UsuarioRepository usuarioRepository,
                               ProfileUpdateTemplate profileUpdateTemplate,
-                              PasswordChangeTemplate passwordChangeTemplate) {
+                              PasswordChangeTemplate passwordChangeTemplate,
+                              DireccionService direccionService) {
         this.usuarioRepository = usuarioRepository;
         this.profileUpdateTemplate = profileUpdateTemplate;
         this.passwordChangeTemplate = passwordChangeTemplate;
+        this.direccionService = direccionService;
     }
 
     @Override
@@ -61,23 +63,6 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProfileResponse> getAllProfiles() {
-        return usuarioRepository.findAll().stream()
-                .map(this::mapToProfileResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional
-    public void deleteUserById(Long id) {
-        if (!usuarioRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Usuario no encontrado con ID: " + id);
-        }
-        usuarioRepository.deleteById(id);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public Usuario findByEmail(String email) {
         return usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con email: " + email));
@@ -87,20 +72,23 @@ public class ProfileServiceImpl implements ProfileService {
         Persona persona = usuario.getPersona();
         PersonaDTO personaDTO = null;
         if (persona != null) {
+            DireccionResponse direccionResponse = null;
+            if (persona.getDireccion() != null) {
+                direccionResponse = direccionService.getById(persona.getDireccion().getId());
+            }
             personaDTO = new PersonaDTO(
                     persona.getId(),
                     persona.getNombre(),
                     persona.getApellido(),
                     persona.getDni(),
                     persona.getFechaNacimiento(),
-                    persona.getDireccion()
+                    direccionResponse
             );
         }
 
         return new ProfileResponse(
                 usuario.getId(),
                 usuario.getEmail(),
-                usuario.getRol().name(),
                 usuario.getAuthProvider().name(),
                 usuario.getActivo(),
                 personaDTO,

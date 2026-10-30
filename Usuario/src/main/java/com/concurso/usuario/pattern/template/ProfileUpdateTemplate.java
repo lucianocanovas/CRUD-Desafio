@@ -1,14 +1,17 @@
 package com.concurso.usuario.pattern.template;
 
 import com.concurso.usuario.dto.request.ProfileUpdateRequest;
+import com.concurso.usuario.dto.response.DireccionResponse;
 import com.concurso.usuario.dto.response.PersonaDTO;
 import com.concurso.usuario.dto.response.ProfileResponse;
+import com.concurso.usuario.entity.Direccion;
 import com.concurso.usuario.entity.Persona;
 import com.concurso.usuario.entity.Usuario;
 import com.concurso.usuario.exception.BadRequestException;
 import com.concurso.usuario.exception.ResourceNotFoundException;
 import com.concurso.usuario.repository.PersonaRepository;
 import com.concurso.usuario.repository.UsuarioRepository;
+import com.concurso.usuario.service.DireccionService;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,10 +31,14 @@ public class ProfileUpdateTemplate extends AbstractAccountOperationTemplate<Prof
 
     private final UsuarioRepository usuarioRepository;
     private final PersonaRepository personaRepository;
+    private final DireccionService direccionService;
 
-    public ProfileUpdateTemplate(UsuarioRepository usuarioRepository, PersonaRepository personaRepository) {
+    public ProfileUpdateTemplate(UsuarioRepository usuarioRepository,
+                                 PersonaRepository personaRepository,
+                                 DireccionService direccionService) {
         this.usuarioRepository = usuarioRepository;
         this.personaRepository = personaRepository;
+        this.direccionService = direccionService;
     }
 
     @Override
@@ -67,7 +74,6 @@ public class ProfileUpdateTemplate extends AbstractAccountOperationTemplate<Prof
         request.setNombre(request.getNombre().trim());
         request.setApellido(request.getApellido().trim());
         request.setDni(request.getDni().trim());
-        request.setDireccion(request.getDireccion().trim());
     }
 
     @Override
@@ -83,10 +89,19 @@ public class ProfileUpdateTemplate extends AbstractAccountOperationTemplate<Prof
         persona.setApellido(request.getApellido());
         persona.setDni(request.getDni());
         persona.setFechaNacimiento(request.getFechaNacimiento());
-        persona.setDireccion(request.getDireccion());
+
+        if (request.getDireccion() != null || request.getDireccionId() != null) {
+            Direccion nuevaDireccion = direccionService.getOrCreateFromRequest(request.getDireccion(), request.getDireccionId());
+            persona.setDireccion(nuevaDireccion);
+        }
 
         personaRepository.save(persona);
         Usuario usuarioActualizado = usuarioRepository.save(usuario);
+
+        DireccionResponse direccionResponse = null;
+        if (persona.getDireccion() != null) {
+            direccionResponse = direccionService.getById(persona.getDireccion().getId());
+        }
 
         PersonaDTO personaDTO = new PersonaDTO(
                 persona.getId(),
@@ -94,13 +109,12 @@ public class ProfileUpdateTemplate extends AbstractAccountOperationTemplate<Prof
                 persona.getApellido(),
                 persona.getDni(),
                 persona.getFechaNacimiento(),
-                persona.getDireccion()
+                direccionResponse
         );
 
         return new ProfileResponse(
                 usuarioActualizado.getId(),
                 usuarioActualizado.getEmail(),
-                usuarioActualizado.getRol().name(),
                 usuarioActualizado.getAuthProvider().name(),
                 usuarioActualizado.getActivo(),
                 personaDTO,

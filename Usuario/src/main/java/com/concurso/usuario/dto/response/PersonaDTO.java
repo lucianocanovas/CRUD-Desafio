@@ -21,19 +21,23 @@ public class PersonaDTO {
     @Schema(description = "Fecha de nacimiento", example = "1995-05-20")
     private LocalDate fechaNacimiento;
 
-    @Schema(description = "Dirección de residencia", example = "Av. Siempre Viva 742")
-    private String direccion;
+    @Schema(description = "Dirección estructurada de residencia")
+    private DireccionResponse direccion;
+
+    @Schema(description = "Texto legible de la dirección", example = "Av. San Martín 742, Piso 4 Dpto B, Ciudad de Mendoza, Capital, Argentina")
+    private String direccionTexto;
 
     public PersonaDTO() {
     }
 
-    public PersonaDTO(Long id, String nombre, String apellido, String dni, LocalDate fechaNacimiento, String direccion) {
+    public PersonaDTO(Long id, String nombre, String apellido, String dni, LocalDate fechaNacimiento, DireccionResponse direccion) {
         this.id = id;
         this.nombre = nombre;
         this.apellido = apellido;
         this.dni = dni;
         this.fechaNacimiento = fechaNacimiento;
         this.direccion = direccion;
+        this.direccionTexto = (direccion != null) ? direccion.getTextoCompleto() : "";
     }
 
     public Long getId() {
@@ -76,11 +80,20 @@ public class PersonaDTO {
         this.fechaNacimiento = fechaNacimiento;
     }
 
-    public String getDireccion() {
+    public DireccionResponse getDireccion() {
         return direccion;
     }
 
-    public void setDireccion(String direccion) {
+    public void setDireccion(DireccionResponse direccion) {
         this.direccion = direccion;
+        this.direccionTexto = (direccion != null) ? direccion.getTextoCompleto() : "";
+    }
+
+    public String getDireccionTexto() {
+        return direccionTexto;
+    }
+
+    public void setDireccionTexto(String direccionTexto) {
+        this.direccionTexto = direccionTexto;
     }
 }

@@ -18,10 +18,6 @@ public class Usuario {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private Rol rol;
-
-    @Enumerated(EnumType.STRING)
     @Column(name = "auth_provider", nullable = false, length = 30)
     private AuthProvider authProvider;
 
@@ -41,12 +37,11 @@ public class Usuario {
     public Usuario() {
     }
 
-    public Usuario(Long id, String email, String password, Rol rol, AuthProvider authProvider,
+    public Usuario(Long id, String email, String password, AuthProvider authProvider,
                    Boolean activo, Persona persona, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.email = email;
         this.password = password;
-        this.rol = rol;
         this.authProvider = authProvider;
         this.activo = activo;
         this.persona = persona;
@@ -59,9 +54,6 @@ public class Usuario {
         this.createdAt = LocalDateTime.now();
         if (this.activo == null) {
             this.activo = true;
-        }
-        if (this.rol == null) {
-            this.rol = Rol.ROLE_USER;
         }
         if (this.authProvider == null) {
             this.authProvider = AuthProvider.LOCAL;
@@ -82,7 +74,6 @@ public class Usuario {
         private Long id;
         private String email;
         private String password;
-        private Rol rol = Rol.ROLE_USER;
         private AuthProvider authProvider = AuthProvider.LOCAL;
         private Boolean activo = true;
         private Persona persona;
@@ -101,11 +92,6 @@ public class Usuario {
 
         public Builder password(String password) {
             this.password = password;
-            return this;
-        }
-
-        public Builder rol(Rol rol) {
-            this.rol = rol;
             return this;
         }
 
@@ -135,7 +121,7 @@ public class Usuario {
         }
 
         public Usuario build() {
-            return new Usuario(id, email, password, rol, authProvider, activo, persona, createdAt, updatedAt);
+            return new Usuario(id, email, password, authProvider, activo, persona, createdAt, updatedAt);
         }
     }
 
@@ -162,14 +148,6 @@ public class Usuario {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public Rol getRol() {
-        return rol;
-    }
-
-    public void setRol(Rol rol) {
-        this.rol = rol;
     }
 
     public AuthProvider getAuthProvider() {

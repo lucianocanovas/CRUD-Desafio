@@ -23,13 +23,14 @@ public class Persona {
     @Column(name = "fecha_nacimiento", nullable = false)
     private LocalDate fechaNacimiento;
 
-    @Column(nullable = false, length = 255)
-    private String direccion;
+    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
+    @JoinColumn(name = "direccion_id")
+    private Direccion direccion;
 
     public Persona() {
     }
 
-    public Persona(Long id, String nombre, String apellido, String dni, LocalDate fechaNacimiento, String direccion) {
+    public Persona(Long id, String nombre, String apellido, String dni, LocalDate fechaNacimiento, Direccion direccion) {
         this.id = id;
         this.nombre = nombre;
         this.apellido = apellido;
@@ -38,7 +39,7 @@ public class Persona {
         this.direccion = direccion;
     }
 
-    // Builder Pattern manual para evitar dependencias de plugins externos
+    // Builder manual
     public static Builder builder() {
         return new Builder();
     }
@@ -49,7 +50,7 @@ public class Persona {
         private String apellido;
         private String dni;
         private LocalDate fechaNacimiento;
-        private String direccion;
+        private Direccion direccion;
 
         public Builder id(Long id) {
             this.id = id;
@@ -76,7 +77,7 @@ public class Persona {
             return this;
         }
 
-        public Builder direccion(String direccion) {
+        public Builder direccion(Direccion direccion) {
             this.direccion = direccion;
             return this;
         }
@@ -127,11 +128,11 @@ public class Persona {
         this.fechaNacimiento = fechaNacimiento;
     }
 
-    public String getDireccion() {
+    public Direccion getDireccion() {
         return direccion;
     }
 
-    public void setDireccion(String direccion) {
+    public void setDireccion(Direccion direccion) {
         this.direccion = direccion;
     }
 }
